@@ -89,13 +89,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
                 try {
                     const { error } = await supabaseClient
                         .from('tasks')
-                        .insert([{ task: newTask, status: 'pending' }]);
+                        .insert([{ title: newTask, status: 'pending' }]);
                     
                     if (error) throw error;
                     setNewTask('');
                     loadTasks();
                 } catch (error) {
-                    console.error('Error adding task:', error);
+                    console.error('Error adding title:', error);
                     alert('שגיאה בהוספת משימה');
                 }
             }
@@ -111,7 +111,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
                     if (error) throw error;
                     loadTasks();
                 } catch (error) {
-                    console.error('Error updating task:', error);
+                    console.error('Error updating title:', error);
                 }
             }
 
@@ -125,7 +125,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
                     if (error) throw error;
                     loadTasks();
                 } catch (error) {
-                    console.error('Error deleting task:', error);
+                    console.error('Error deleting title:', error);
                 }
             }
 
@@ -219,7 +219,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
                                         textDecoration: task.status === 'completed' ? 'line-through' : 'none',
                                         color: task.status === 'completed' ? '#999' : '#333'
                                     }}>
-                                        {task.task}
+                                        {task.title}
                                     </span>
                                     <button
                                         onClick={() => deleteTask(task.id)}
