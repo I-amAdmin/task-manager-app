@@ -72,7 +72,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
                     const { data, error } = await supabaseClient
                         .from('tasks')
                         .select('*')
-                        .order('inserted_at', { ascending: false });
+                        .order('created_at', { ascending: false });
                     
                     if (error) throw error;
                     setTasks(data || []);
