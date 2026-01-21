@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול משימות - Task Manager</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #root {
+            width: 100%;
+            max-width: 1200px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createClient } = supabase;
+
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://yosrxiavrospjcsaeein.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ttVj-Nqo5_D79M5sk7mKGg_WRUrQz2C';
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function App() {
+            const [tasks, setTasks] = useState([]);
+            const [newTask, setNewTask] = useState('');
+            const [loading, setLoading] = useState(true);
+
+            // Load tasks from Supabase
+            useEffect(() => {
+                loadTasks();
+                
+                // Subscribe to realtime changes
+                const subscription = supabaseClient
+                    .channel('todos')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'todos' },
+                        (payload) => {
+                            console.log('Change received!', payload);
+                            loadTasks();
+                        }
+                    )
+                    .subscribe();
+
+                return () => {
+                    subscription.unsubscribe();
+                };
+            }, []);
+
+            async function loadTasks() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('todos')
+                        .select('*')
+                        .order('inserted_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    setTasks(data || []);
+                } catch (error) {
+                    console.error('Error loading tasks:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            async function addTask() {
+                if (!newTask.trim()) return;
+                
+                try {
+                    const { error } = await supabaseClient
+                        .from('todos')
+                        .insert([{ task: newTask, status: 'pending' }]);
+                    
+                    if (error) throw error;
+                    setNewTask('');
+                    loadTasks();
+                } catch (error) {
+                    console.error('Error adding task:', error);
+                    alert('שגיאה בהוספת משימה');
+                }
+            }
+
+            async function toggleTask(id, currentStatus) {
+                try {
+                    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+                    const { error } = await supabaseClient
+                        .from('todos')
+                        .update({ status: newStatus })
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                    loadTasks();
+                } catch (error) {
+                    console.error('Error updating task:', error);
+                }
+            }
+
+            async function deleteTask(id) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('todos')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                    loadTasks();
+                } catch (error) {
+                    console.error('Error deleting task:', error);
+                }
+            }
+
+            if (loading) {
+                return (
+                    <div style={{ textAlign: 'center', color: 'white', fontSize: '24px' }}>
+                        טוען...
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{ 
+                    background: 'white', 
+                    borderRadius: '20px', 
+                    padding: '30px', 
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)' 
+                }}>
+                    <h1 style={{ 
+                        textAlign: 'center', 
+                        marginBottom: '30px', 
+                        color: '#667eea',
+                        fontSize: '2.5rem'
+                    }}>
+                        מערכת ניהול משימות
+                    </h1>
+                    
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                        <input
+                            type="text"
+                            value={newTask}
+                            onChange={(e) => setNewTask(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && addTask()}
+                            placeholder="הוסף משימה חדשה..."
+                            style={{
+                                flex: 1,
+                                padding: '15px',
+                                fontSize: '16px',
+                                border: '2px solid #e0e0e0',
+                                borderRadius: '10px',
+                                outline: 'none'
+                            }}
+                        />
+                        <button
+                            onClick={addTask}
+                            style={{
+                                padding: '15px 30px',
+                                fontSize: '16px',
+                                background: '#667eea',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            הוסף
+                        </button>
+                    </div>
+
+                    <div style={{ marginTop: '20px' }}>
+                        {tasks.length === 0 ? (
+                            <p style={{ textAlign: 'center', color: '#999', padding: '40px' }}>
+                                אין משימות עדיין. הוסף את הראשונה!
+                            </p>
+                        ) : (
+                            tasks.map(task => (
+                                <div
+                                    key={task.id}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '15px',
+                                        marginBottom: '10px',
+                                        background: task.status === 'completed' ? '#f0f0f0' : '#fff',
+                                        border: '2px solid #e0e0e0',
+                                        borderRadius: '10px',
+                                        transition: 'all 0.3s'
+                                    }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={task.status === 'completed'}
+                                        onChange={() => toggleTask(task.id, task.status)}
+                                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                    />
+                                    <span style={{
+                                        flex: 1,
+                                        fontSize: '16px',
+                                        textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                        color: task.status === 'completed' ? '#999' : '#333'
+                                    }}>
+                                        {task.task}
+                                    </span>
+                                    <button
+                                        onClick={() => deleteTask(task.id)}
+                                        style={{
+                                            padding: '8px 15px',
+                                            background: '#ff4757',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '5px',
+                                            cursor: 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        מחק
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div style={{ 
+                        marginTop: '20px', 
+                        textAlign: 'center', 
+                        color: '#999',
+                        fontSize: '14px'
+                    }}>
+                        סה"כ: {tasks.length} משימות | 
+                        הושלמו: {tasks.filter(t => t.status === 'completed').length}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
