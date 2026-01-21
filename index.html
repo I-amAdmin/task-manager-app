@@ -52,9 +52,9 @@
                 
                 // Subscribe to realtime changes
                 const subscription = supabaseClient
-                    .channel('todos')
+                    .channel('tasks')
                     .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'todos' },
+                        { event: '*', schema: 'public', table: 'tasks' },
                         (payload) => {
                             console.log('Change received!', payload);
                             loadTasks();
@@ -70,7 +70,7 @@
             async function loadTasks() {
                 try {
                     const { data, error } = await supabaseClient
-                        .from('todos')
+                        .from('tasks')
                         .select('*')
                         .order('inserted_at', { ascending: false });
                     
@@ -88,7 +88,7 @@
                 
                 try {
                     const { error } = await supabaseClient
-                        .from('todos')
+                        .from('tasks')
                         .insert([{ task: newTask, status: 'pending' }]);
                     
                     if (error) throw error;
@@ -104,7 +104,7 @@
                 try {
                     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
                     const { error } = await supabaseClient
-                        .from('todos')
+                        .from('tasks')
                         .update({ status: newStatus })
                         .eq('id', id);
                     
@@ -118,7 +118,7 @@
             async function deleteTask(id) {
                 try {
                     const { error } = await supabaseClient
-                        .from('todos')
+                        .from('tasks')
                         .delete()
                         .eq('id', id);
                     
