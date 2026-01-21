@@ -38,8 +38,7 @@
 
         // Supabase Configuration 
         const SUPABASE_URL = 'https://yosrxiavrospjcsaeein.supabase.co';
-      const SUPABASE_ANON_KEY = 'sb_publishable_ttVj-Nqo5_D79M5sk7mKGg_WRUrQz2C';        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvc3J4aWF2cm9zcGpjc2FlZWluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcxMzcwMzYsImV4cCI6MjA1MjcxMzAzNn0.eZcmXgIkr-u_-TaFBCflSfSUn5l2dxzCg-K5mU-TnyY';
         function App() {
             const [tasks, setTasks] = useState([]);
             const [newTask, setNewTask] = useState('');
