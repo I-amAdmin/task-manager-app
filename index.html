@@ -35,11 +35,18 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         const { createClient } = supabase;
-
+        
         // Supabase Configuration 
         const SUPABASE_URL = 'https://yosrxiavrospjcsaeein.supabase.co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvc3J4aWF2cm9zcGpjc2FlZWluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcxMzcwMzYsImV4cCI6MjA1MjcxMzAzNn0.eZcmXgIkr-u_-TaFBCflSfSUn5l2dxzCg-K5mU-TnyY';
-              const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvc3J4aWF2cm9zcGpjc2FlZWluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcxMzcwMzYsImV4cCI6MjA1MjcxMzAzNn0.eZcmXgIkr-u_-TaFBCflSfSUn5l2dxzCg-K5mU-TnyY';
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            realtime: {
+                params: {
+                    eventsPerSecond: 10
+                }
+            }
+        });
+
         function App() {
             const [tasks, setTasks] = useState([]);
             const [newTask, setNewTask] = useState('');
@@ -48,35 +55,25 @@
             // Load tasks from Supabase
             useEffect(() => {
                 loadTasks();
-                
-                // Subscribe to realtime changes
-                const subscription = supabaseClient
-                    .channel('tasks')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'tasks' },
-                        (payload) => {
-                            console.log('Change received!', payload);
-                            loadTasks();
-                        }
-                    )
-                    .subscribe();
-
-                return () => {
-                    subscription.unsubscribe();
-                };
             }, []);
 
             async function loadTasks() {
                 try {
+                    console.log('Loading tasks...');
                     const { data, error } = await supabaseClient
                         .from('tasks')
                         .select('*')
                         .order('created_at', { ascending: false });
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error('Supabase error:', error);
+                        throw error;
+                    }
+                    console.log('Tasks loaded:', data);
                     setTasks(data || []);
                 } catch (error) {
                     console.error('Error loading tasks:', error);
+                    alert('שגיאה בטעינת משימות: ' + error.message);
                 } finally {
                     setLoading(false);
                 }
@@ -86,16 +83,22 @@
                 if (!newTask.trim()) return;
                 
                 try {
-                    const { error } = await supabaseClient
+                    console.log('Adding task:', newTask);
+                    const { data, error } = await supabaseClient
                         .from('tasks')
-                        .insert([{ title: newTask, status: 'pending' }]);
+                        .insert([{ title: newTask, status: 'pending' }])
+                        .select();
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error('Insert error:', error);
+                        throw error;
+                    }
+                    console.log('Task added:', data);
                     setNewTask('');
                     loadTasks();
                 } catch (error) {
-                    console.error('Error adding title:', error);
-                    alert('שגיאה בהוספת משימה');
+                    console.error('Error adding task:', error);
+                    alert('שגיאה בהוספת משימה: ' + error.message);
                 }
             }
 
@@ -110,7 +113,8 @@
                     if (error) throw error;
                     loadTasks();
                 } catch (error) {
-                    console.error('Error updating title:', error);
+                    console.error('Error updating task:', error);
+                    alert('שגיאה בעדכון משימה');
                 }
             }
 
@@ -124,7 +128,8 @@
                     if (error) throw error;
                     loadTasks();
                 } catch (error) {
-                    console.error('Error deleting title:', error);
+                    console.error('Error deleting task:', error);
+                    alert('שגיאה במחיקת משימה');
                 }
             }
 
